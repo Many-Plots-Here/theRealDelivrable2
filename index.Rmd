@@ -1,0 +1,173 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+---
+
+
+```{r}
+setwd("C:\\Users\\bethb\\OneDrive\\Desktop\\GitHub DataViz\\theRealDelivrable2")
+movieData <- read.csv("Best_Movie_by_Year_Netflix.csv")
+```
+
+
+
+```{r}
+str(movieData, width=50, strict.width='cut')
+```
+Tabular data - Bivariate relationship 2: Categorical - Numerical 
+
+Let's keep using the same data on Genres. The next cases will show how a categorical variable can help us better understand the behavior of a numeric variable. 
+Let's take a look at a variable that informs the amount 
+
+```{r}
+# score report 
+# notice the spread of values 
+summary(movieData$SCORE)
+```
+Let me see the crimes that took the longest: 
+
+```{r}
+movieData[which.max(movieData$SCORE),]
+```
+
+Let's get the median for each Country 
+
+```{r}
+ScoreCountry=movieData[complete.cases(movieData),]
+aggregate(data = ScoreCountry, SCORE~MAIN_PRODUCTION,median)
+```
+
+Let's request a boxplot for each country
+
+```{r}
+# boxplot of score per country
+
+library(ggplot2)
+base=ggplot(data = ScoreCountry,
+            aes(x = MAIN_PRODUCTION, y=SCORE))
+
+base + geom_boxplot()
+```
+let's check out the statistics behind the median
+
+```{r}
+# using summary function 
+tapply(ScoreCountry$SCORE,
+       ScoreCountry$MAIN_PRODUCTION, summary)
+```
+If we consider the situation of score > 7 is expected behavior, let me keep the ones that are > 7 using ggarrange
+
+```{r}
+library(ggpubr)
+
+base7 = ggplot(data = ScoreCountry[ScoreCountry$SCORE >= 7,],
+               aes(x=MAIN_PRODUCTION, y=SCORE))
+box7 = base7 + geom_boxplot() + labs(title = "7 and above")
+
+base8 = ggplot(data = ScoreCountry[ScoreCountry$SCORE >= 8,],
+               aes(x = MAIN_PRODUCTION, y = SCORE))
+box8 = base8 + geom_boxplot() + labs(title = "8 and above")
+
+base9 = ggplot(data = ScoreCountry[ScoreCountry$SCORE >= 9,],
+               aes(x = MAIN_PRODUCTION, y = SCORE))
+box9 = base9 + geom_boxplot() + labs(title = "9 and above")
+
+# all in one
+ggarrange(box7, box8, box9, ncol=1)
+```
+
+Up to this point, you need to be planning a good story. The situation is different for each case, but let's build our visual from the crimes that take a year or longer to report
+
+```{r}
+ScoreAbove7 = ScoreCountry[ScoreCountry$SCORE >= 7,]
+```
+
+Let's see if flipping helps you see better
+
+```{r}
+titleText = "Countries Movie Scores Above 7.0"
+
+names(ScoreAbove7)=c("Index","Title","Release Year", "Score", "Genre", "Country")
+baseSA7 = ggplot(data = ScoreAbove7,
+                 aes(x = Country,
+                     y = Score))
+
+boxSA7 = baseSA7 + geom_boxplot() + labs(title = titleText)
+
+boxSA7 + coord_flip()
+```
+
+Let's reorder the category by median of the numeric variable 
+
+```{r}
+baseSA7 = ggplot(data = ScoreAbove7,
+                 aes(x = reorder(Country, Score, median),
+                     y = Score))
+boxSA7 = baseSA7 + geom_boxplot() + labs(title = titleText)
+
+# flipping
+boxSA7 + coord_flip()
+```
+What if we use the histogram: 
+
+```{r}
+baseHistSA7 = ggplot(data = ScoreAbove7,
+                     aes(x = Score))
+HistSA7 = baseHistSA7 + geom_histogram(aes(fill=Country),
+                                       color = 'black') # color the border
+HistSA7
+```
+
+You need facets: 
+
+```{r}
+HistSA7 + facet_grid(~Country)
+```
+The alternative without legend
+
+```{r}
+HistSA7 + facet_grid(Country~.) + guides(fill="none")
+```
+What about reordering 
+
+```{r}
+HistSA7 = HistSA7 + facet_grid(reorder(Country,
+                                       -Score,
+                                       mean)~.) + guides(fill="none")
+HistSA7
+```
+```{r}
+titleText2 = "Which Countries Produced the Highest Rated Netflix Movies?"
+HistSA7.1 = HistSA7 + labs(title = titleText2)
+HistSA7.1
+```
+
+```{r}
+sourceText = 'Source: Eduardo Gonzalez'
+HistSA7.2 = ggplot(transform(ScoreCountry,
+                 CountryH=factor(MAIN_PRODUCTION, levels = c("US", "IN", "GB", "HK", "JP", "FR", "DE")))) + geom_histogram(aes(SCORE), fill='darkgreen')+facet_grid(CountryH~.)
+
+HistSA7.3 = HistSA7.2 + labs(title = titleText2, x = "movie score", y = "number of movies per score", caption = c('Source: Eduardo Gonzalez','Countries: United States, India, Great Britain, Hong Kong, Japan, France, Denmark'))
+                             
+HistSA7.4 = HistSA7.3 + theme(axis.text.y = element_text(angle = 90,
+                                   hjust = 1,
+                                   size = 5)) +  theme(plot.caption = element_text(hjust=c(0,1), size = 6),plot.title = element_text(hjust=0.5)) 
+
+HistSA7.4 
+
+
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
